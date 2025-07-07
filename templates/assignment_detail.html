@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ assignment.title }} - CS466 Learning System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container-fluid {
+            padding: 0;
+        }
+
+        .assignment-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .assignment-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="rgba(255,255,255,0.1)"><polygon points="1000,100 1000,0 0,100"/></svg>') no-repeat bottom;
+            background-size: cover;
+        }
+
+        .assignment-header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .assignment-meta {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .assignment-content {
+            background: white;
+            margin: -2rem 1rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            z-index: 10;
+        }
+
+        .content-section {
+            padding: 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .content-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .difficulty-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .difficulty-easy {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .difficulty-medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 2px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .difficulty-hard {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 2px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .language-badge {
+            background: linear-gradient(135deg, var(--info-color), var(--primary-color));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .assignment-description {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #374151;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+            color: white;
+        }
+
+        .btn-secondary-custom {
+            background: white;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary-custom:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .deadline-warning {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid var(--warning-color);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .deadline-danger {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-left: 4px solid var(--danger-color);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border: 1px solid #93c5fd;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .assignment-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .assignment-header h1 {
+                font-size: 2rem;
+            }
+            
+            .assignment-meta {
+                gap: 1rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .back-button {
+                position: static;
+                margin-bottom: 1rem;
+                align-self: flex-start;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="assignment-header">
+            <a href="javascript:history.back()" class="back-button">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+            
+            <h1>{{ assignment.title }}</h1>
+            <p class="lead">{{ assignment.description[:100] }}{% if assignment.description|length > 100 %}...{% endif %}</p>
+            
+            <div class="assignment-meta">
+                <div class="meta-item">
+                    <i class="fas fa-code"></i>
+                    <span class="language-badge">
+                        <i class="fab fa-python"></i>
+                        {{ assignment.language|title }}
+                    </span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-signal"></i>
+                    <span class="difficulty-badge difficulty-{{ assignment.difficulty }}">
+                        {{ assignment.difficulty|title }}
+                    </span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-user"></i>
+                    <span>{{ assignment.teacher_name or 'Giáo viên' }}</span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ assignment.deadline[:10] if assignment.deadline else 'Không giới hạn' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="assignment-content fade-in">
+            <!-- Description Section -->
+            <div class="content-section">
+                <h3 class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Mô tả bài tập
+                </h3>
+                <div class="assignment-description">
+                    {{ assignment.description|safe }}
+                </div>
+                
+                {% if assignment.deadline %}
+                <div id="deadline-status"></div>
+                {% endif %}
+            </div>
+
+            <!-- Assignment Details -->
+            <div class="content-section">
+                <h3 class="section-title">
+                    <i class="fas fa-cog"></i>
+                    Thông tin chi tiết
+                </h3>
+                
+                <div class="assignment-stats">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ assignment.language|title }}</div>
+                        <div class="stat-label">Ngôn ngữ</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ assignment.assignment_type|title }}</div>
+                        <div class="stat-label">Loại bài tập</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ assignment.difficulty|title }}</div>
+                        <div class="stat-label">Độ khó</div>
+                    </div>
+                    {% if assignment.deadline %}
+                    <div class="stat-card">
+                        <div class="stat-number" id="days-left">-</div>
+                        <div class="stat-label">Ngày còn lại</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if assignment.starter_code %}
+                <div class="info-card">
+                    <h5><i class="fas fa-code"></i> Code mẫu:</h5>
+                    <pre><code>{{ assignment.starter_code }}</code></pre>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div class="content-section">
+                <h3 class="section-title">
+                    <i class="fas fa-play"></i>
+                    Hành động
+                </h3>
+                
+                <div class="action-buttons">
+                    {% if user.role == 'student' %}
+                        <a href="/assignment/{{ assignment.id }}/solve" class="btn-primary-custom">
+                            <i class="fas fa-code"></i>
+                            Làm bài tập
+                        </a>
+                        <a href="/code-editor" class="btn-secondary-custom" target="_blank">
+                            <i class="fas fa-external-link-alt"></i>
+                            Mở Code Editor
+                        </a>
+                    {% else %}
+                        <a href="/assignment/create" class="btn-secondary-custom">
+                            <i class="fas fa-plus"></i>
+                            Tạo bài tập mới
+                        </a>
+                        <a href="/dashboard/teacher" class="btn-primary-custom">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Về Dashboard
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Calculate deadline status
+        function updateDeadlineStatus() {
+            const deadline = '{{ assignment.deadline }}';
+            if (!deadline) return;
+            
+            const deadlineDate = new Date(deadline);
+            const now = new Date();
+            const diffTime = deadlineDate - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const deadlineElement = document.getElementById('deadline-status');
+            const daysLeftElement = document.getElementById('days-left');
+            
+            if (daysLeftElement) {
+                daysLeftElement.textContent = diffDays > 0 ? diffDays : '0';
+            }
+            
+            if (diffDays < 0) {
+                deadlineElement.innerHTML = `
+                    <div class="deadline-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Đã quá hạn!</strong> Bài tập đã hết hạn nộp từ ${Math.abs(diffDays)} ngày trước.
+                    </div>
+                `;
+            } else if (diffDays <= 3) {
+                deadlineElement.innerHTML = `
+                    <div class="deadline-warning">
+                        <i class="fas fa-clock"></i>
+                        <strong>Sắp hết hạn!</strong> Còn ${diffDays} ngày để nộp bài.
+                    </div>
+                `;
+            } else {
+                deadlineElement.innerHTML = `
+                    <div class="info-card">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Hạn nộp:</strong> ${deadlineDate.toLocaleDateString('vi-VN')} - Còn ${diffDays} ngày.
+                    </div>
+                `;
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDeadlineStatus();
+            
+            // Add fade-in animation
+            document.querySelector('.assignment-content').classList.add('fade-in');
+        });
+    </script>
+</body>
+</html> 
