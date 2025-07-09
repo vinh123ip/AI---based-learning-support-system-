@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Sinh Viên - CS466</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            color: white !important;
+            font-weight: bold;
+        }
+        
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.8) !important;
+            transition: color 0.3s;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            color: white !important;
+        }
+        
+        .sidebar {
+            background: white;
+            min-height: calc(100vh - 56px);
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: #495057;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin: 0.25rem;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .assignment-card {
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+        
+        .assignment-card .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .badge-difficulty {
+            font-size: 0.8rem;
+        }
+        
+        .badge-easy {
+            background-color: #28a745;
+        }
+        
+        .badge-medium {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-hard {
+            background-color: #dc3545;
+        }
+        
+        .progress-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: conic-gradient(#667eea 0deg, #764ba2 var(--progress, 0deg), #e9ecef var(--progress, 0deg));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .progress-circle::before {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .progress-text {
+            position: relative;
+            z-index: 1;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        .search-form {
+            margin-bottom: 2rem;
+        }
+        
+        .filter-tags {
+            margin-bottom: 1rem;
+        }
+        
+        .filter-tag {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            margin: 0.25rem;
+            font-size: 0.875rem;
+        }
+        
+        .filter-tag.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .no-assignments {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        
+        .no-assignments i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Code Editor Styles */
+        .code-editor-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .editor-toolbar {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .code-editor {
+            border: none;
+            border-radius: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            background: white;
+        }
+        
+        .code-editor:focus {
+            box-shadow: none;
+            border: none;
+        }
+        
+        /* Console Styles - White Background like online-python.com */
+        .console-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .console-toolbar {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .console-title {
+            font-weight: 500;
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .console-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .console-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+        
+        .console-output {
+            flex: 1;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow-y: auto;
+            background: white;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .console-line {
+            margin-bottom: 2px;
+        }
+        
+        .console-input-container {
+            border-top: 1px solid #ddd;
+            padding: 8px 12px;
+            background: #f8f9fa;
+        }
+        
+        .console-input {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border: 1px solid #ddd;
+        }
+        
+        .console-input:focus {
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        
+        /* Console Output Colors */
+        .console-output .text-success {
+            color: #28a745 !important;
+        }
+        
+        .console-output .text-danger {
+            color: #dc3545 !important;
+        }
+        
+        .console-output .text-info {
+            color: #17a2b8 !important;
+        }
+        
+        .console-output .text-warning {
+            color: #ffc107 !important;
+        }
+        
+        .console-output .text-muted {
+            color: #6c757d !important;
+        }
+        
+        .console-output .text-primary {
+            color: #007bff !important;
+        }
+        
+        /* Scrollbar for console */
+        .console-output::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .console-output::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .console-output::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .console-output::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 56px;
+                left: -250px;
+                width: 250px;
+                height: calc(100vh - 56px);
+                z-index: 1000;
+                transition: left 0.3s;
+            }
+            
+            .sidebar.show {
+                left: 0;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-graduation-cap"></i> CS466 - Sinh Viên
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span id="username-display">Sinh viên</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="showProfile()"><i class="fas fa-user"></i> Hồ sơ</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSettings()"><i class="fas fa-cog"></i> Cài đặt</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar">
+                <nav class="nav flex-column pt-3">
+                    <a class="nav-link active" href="#" onclick="showDashboard()">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a class="nav-link" href="#" onclick="showAssignments()">
+                        <i class="fas fa-tasks"></i> Bài tập
+                    </a>
+                    <a class="nav-link" href="#" onclick="showCodeEditor()">
+                        <i class="fas fa-code"></i> Code Editor
+                    </a>
+                    <a class="nav-link" href="/search" target="_blank">
+                        <i class="fas fa-search"></i> Tìm kiếm
+                    </a>
+                    <a class="nav-link" href="#" onclick="showProgress()">
+                        <i class="fas fa-chart-line"></i> Tiến độ
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-10 main-content">
+                <div id="content-area">
+                    <!-- Dashboard Content -->
+                    <div id="dashboard-content">
+                        <h2>Chào mừng trở lại! <i class="fas fa-wave-hand"></i></h2>
+                        <p class="text-muted">Hôm nay bạn muốn học gì?</p>
+                        
+                        <!-- Stats Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="stats-number" id="total-assignments">0</div>
+                                    <div class="text-muted">Tổng bài tập</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="stats-number" id="completed-assignments">0</div>
+                                    <div class="text-muted">Đã hoàn thành</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="stats-number" id="pending-assignments">0</div>
+                                    <div class="text-muted">Chưa làm</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="progress-circle" id="progress-circle">
+                                        <div class="progress-text">0%</div>
+                                    </div>
+                                    <div class="text-muted mt-2">Tiến độ</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Assignments -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-clock"></i> Bài tập gần đây</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="recent-assignments">
+                                    <div class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Assignments Content -->
+                    <div id="assignments-content" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2><i class="fas fa-tasks"></i> Danh sách bài tập</h2>
+                            <button class="btn btn-primary" onclick="refreshAssignments()">
+                                <i class="fas fa-sync-alt"></i> Làm mới
+                            </button>
+                        </div>
+                        
+                        <!-- Filters -->
+                        <div class="filter-tags">
+                            <span class="filter-tag active" onclick="filterAssignments('all')">Tất cả</span>
+                            <span class="filter-tag" onclick="filterAssignments('python')">Python</span>
+                            <span class="filter-tag" onclick="filterAssignments('perl')">Perl</span>
+                            <span class="filter-tag" onclick="filterAssignments('code')">Code</span>
+                            <span class="filter-tag" onclick="filterAssignments('quiz')">Quiz</span>
+                        </div>
+                        
+                        <div id="assignments-list">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin"></i> Đang tải bài tập...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Code Editor Content -->
+                    <div id="code-editor-content" style="display: none;">
+                        <h2><i class="fas fa-code"></i> Code Editor</h2>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <select class="form-select" id="language-select">
+                                            <option value="python">Python</option>
+                                            <option value="perl">Perl</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                                                
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="code-editor-section">
+                                            <div class="editor-toolbar">
+                                                <button class="btn btn-sm btn-outline-secondary" onclick="undoCode()" title="Undo">
+                                                    <i class="fas fa-undo"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" onclick="redoCode()" title="Redo">
+                                                    <i class="fas fa-redo"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" onclick="resetCode()" title="Reset Code">
+                                                    <i class="fas fa-refresh"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-success ms-2" onclick="runCode()" title="Run Code">
+                                                    <i class="fas fa-play"></i> Run
+                                                </button>
+                                            </div>
+                                            <textarea class="form-control code-editor" id="code-input" rows="20" placeholder="# Nhập code Python của bạn ở đây..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="console-section">
+                                            <div class="console-toolbar">
+                                                <span class="console-title">
+                                                    <i class="fas fa-terminal"></i> Console
+                                                </span>
+                                                <div class="console-buttons">
+                                                    <button class="btn btn-sm btn-outline-secondary" onclick="copyConsoleOutput()" title="Copy to Clipboard">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary" onclick="clearConsole()" title="Clear Console">
+                                                        <i class="fas fa-broom"></i> Clear
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="console-container">
+                                                <div id="console-output" class="console-output">
+                                                    <div class="console-line">
+                                                        <span class="text-muted">Python 3.8+ Console - Ready</span>
+                                                    </div>
+                                                </div>
+                                                <div class="console-input-container" id="console-input-container" style="display: none;">
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control console-input" 
+                                                               id="console-input" placeholder="Nhập giá trị input..."
+                                                               onkeypress="handleConsoleInput(event)">
+                                                        <button class="btn btn-primary btn-sm" onclick="submitConsoleInput()">
+                                                            <i class="fas fa-paper-plane"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Content -->
+                    <div id="search-content" style="display: none;">
+                        <h2><i class="fas fa-search"></i> Tìm kiếm nâng cao</h2>
+                        
+                        <div class="search-form">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <input type="text" class="form-control" id="search-input" placeholder="Nhập từ khóa tìm kiếm...">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button class="btn btn-primary w-100" onclick="performSearch()">
+                                                <i class="fas fa-search"></i> Tìm kiếm
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-md-4">
+                                            <select class="form-select" id="search-category">
+                                                <option value="all">Tất cả danh mục</option>
+                                                <option value="assignment">Bài tập</option>
+                                                <option value="teacher">Giáo viên</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" id="search-language">
+                                                <option value="">Tất cả ngôn ngữ</option>
+                                                <option value="python">Python</option>
+                                                <option value="perl">Perl</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select" id="search-difficulty">
+                                                <option value="">Tất cả độ khó</option>
+                                                <option value="easy">Dễ</option>
+                                                <option value="medium">Trung bình</option>
+                                                <option value="hard">Khó</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="search-results">
+                            <div class="no-assignments">
+                                <i class="fas fa-search"></i>
+                                <h4>Nhập từ khóa để tìm kiếm</h4>
+                                <p>Sử dụng các bộ lọc để tìm kiếm chính xác hơn</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Content -->
+                    <div id="progress-content" style="display: none;">
+                        <h2><i class="fas fa-chart-line"></i> Tiến độ học tập</h2>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <canvas id="progress-chart"></canvas>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div id="progress-details">
+                                            <h5>Chi tiết tiến độ</h5>
+                                            <div id="progress-stats">
+                                                <div class="text-center">
+                                                    <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assignment Detail Modal -->
+    <div class="modal fade" id="assignmentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết bài tập</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="assignment-details">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary" id="start-assignment-btn">Bắt đầu làm bài</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Global variables
+        let currentAssignments = [];
+        let currentFilter = 'all';
+        const token = localStorage.getItem('access_token');
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            
+            loadUserInfo();
+            loadDashboardData();
+            loadAssignments();
+        });
+        
+        // Load user info
+        function loadUserInfo() {
+            const role = localStorage.getItem('user_role');
+            const username = role === 'teacher' ? 'Giáo viên' : 'Sinh viên';
+            document.getElementById('username-display').textContent = username;
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_role');
+            window.location.href = '/';
+        }
+        
+        // Profile and Settings functions
+        function showProfile() {
+            alert('Chức năng hồ sơ đang được phát triển');
+        }
+        
+        function showSettings() {
+            alert('Chức năng cài đặt đang được phát triển');
+        }
+        
+        // Navigation functions
+        function showDashboard() {
+            hideAllContent();
+            document.getElementById('dashboard-content').style.display = 'block';
+            updateActiveNav('dashboard');
+            loadDashboardData();
+        }
+        
+        function showAssignments() {
+            hideAllContent();
+            document.getElementById('assignments-content').style.display = 'block';
+            updateActiveNav('assignments');
+            loadAssignments();
+        }
+        
+        function showCodeEditor() {
+            hideAllContent();
+            document.getElementById('code-editor-content').style.display = 'block';
+            updateActiveNav('code-editor');
+        }
+        
+        function showSearch() {
+            hideAllContent();
+            document.getElementById('search-content').style.display = 'block';
+            updateActiveNav('search');
+        }
+        
+        function showProgress() {
+            hideAllContent();
+            document.getElementById('progress-content').style.display = 'block';
+            updateActiveNav('progress');
+            loadProgressChart();
+        }
+        
+        function hideAllContent() {
+            const contents = ['dashboard-content', 'assignments-content', 'code-editor-content', 'search-content', 'progress-content'];
+            contents.forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+        }
+        
+        function updateActiveNav(activeId) {
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            const mapping = {
+                'dashboard': 0,
+                'assignments': 1,
+                'code-editor': 2,
+                'search': 3,
+                'progress': 4
+            };
+            
+            const links = document.querySelectorAll('.sidebar .nav-link');
+            if (links[mapping[activeId]]) {
+                links[mapping[activeId]].classList.add('active');
+            }
+        }
+        
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/dashboard-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateDashboardStats(data);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+        
+        function updateDashboardStats(data) {
+            document.getElementById('total-assignments').textContent = data.total || 0;
+            document.getElementById('completed-assignments').textContent = data.completed || 0;
+            document.getElementById('pending-assignments').textContent = data.pending || 0;
+            
+            const progress = data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0;
+            document.querySelector('.progress-text').textContent = progress + '%';
+            
+            const progressCircle = document.getElementById('progress-circle');
+            progressCircle.style.setProperty('--progress', (progress * 3.6) + 'deg');
+        }
+        
+        // Load assignments
+        async function loadAssignments() {
+            try {
+                const response = await fetch('/api/assignments', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const assignments = await response.json();
+                    currentAssignments = assignments;
+                    displayAssignments(assignments);
+                    displayRecentAssignments(assignments.slice(0, 5));
+                }
+            } catch (error) {
+                console.error('Error loading assignments:', error);
+                document.getElementById('assignments-list').innerHTML = 
+                    '<div class="no-assignments"><i class="fas fa-exclamation-triangle"></i><h4>Lỗi tải dữ liệu</h4></div>';
+            }
+        }
+        
+        function displayAssignments(assignments) {
+            const container = document.getElementById('assignments-list');
+            
+            if (assignments.length === 0) {
+                container.innerHTML = `
+                    <div class="no-assignments">
+                        <i class="fas fa-tasks"></i>
+                        <h4>Chưa có bài tập nào</h4>
+                        <p>Hãy liên hệ với giáo viên để được giao bài tập</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = assignments.map(assignment => {
+                const difficultyClass = assignment.difficulty === 'easy' ? 'badge-easy' : 
+                                      assignment.difficulty === 'medium' ? 'badge-medium' : 'badge-hard';
+                
+                return `
+                    <div class="assignment-card card" onclick="showAssignmentDetails(${assignment.id})">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">${assignment.title}</h6>
+                                <div>
+                                    <span class="badge ${difficultyClass}">${assignment.difficulty}</span>
+                                    <span class="badge bg-secondary">${assignment.language}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">${assignment.description}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-user"></i> ${assignment.teacher_name}
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> ${formatDate(assignment.deadline)}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        function displayRecentAssignments(assignments) {
+            const container = document.getElementById('recent-assignments');
+            
+            if (assignments.length === 0) {
+                container.innerHTML = '<p class="text-muted">Chưa có bài tập nào.</p>';
+                return;
+            }
+            
+            const html = assignments.map(assignment => `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <h6 class="mb-0">${assignment.title}</h6>
+                        <small class="text-muted">${assignment.teacher_name}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary">${assignment.language}</span>
+                        <br>
+                        <small class="text-muted">${formatDate(assignment.deadline)}</small>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        // Filter assignments
+        function filterAssignments(filter) {
+            currentFilter = filter;
+            
+            // Update active filter tag
+            document.querySelectorAll('.filter-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Filter assignments
+            let filteredAssignments = currentAssignments;
+            
+            if (filter !== 'all') {
+                filteredAssignments = currentAssignments.filter(assignment => {
+                    return assignment.language === filter || assignment.assignment_type === filter;
+                });
+            }
+            
+            displayAssignments(filteredAssignments);
+        }
+        
+        // Show assignment details
+        async function showAssignmentDetails(assignmentId) {
+            try {
+                const response = await fetch(`/assignment/${assignmentId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const assignment = await response.json();
+                    displayAssignmentModal(assignment);
+                }
+            } catch (error) {
+                console.error('Error loading assignment details:', error);
+            }
+        }
+        
+        function displayAssignmentModal(assignment) {
+            const modalBody = document.getElementById('assignment-details');
+            const startBtn = document.getElementById('start-assignment-btn');
+            
+            modalBody.innerHTML = `
+                <h5>${assignment.title}</h5>
+                <p><strong>Mô tả:</strong> ${assignment.description}</p>
+                <p><strong>Ngôn ngữ:</strong> ${assignment.language}</p>
+                <p><strong>Loại bài tập:</strong> ${assignment.assignment_type}</p>
+                <p><strong>Giáo viên:</strong> ${assignment.teacher_name}</p>
+                <p><strong>Deadline:</strong> ${formatDate(assignment.deadline)}</p>
+            `;
+            
+            startBtn.onclick = () => {
+                window.location.href = `/assignment/${assignment.id}/solve`;
+            };
+            
+            new bootstrap.Modal(document.getElementById('assignmentModal')).show();
+        }
+        
+        // Console variables
+        let currentExecution = null;
+        let pendingInputs = [];
+        let isWaitingForInput = false;
+        let codeHistory = [];
+        let historyIndex = -1;
+        
+        // Code editor functions - Updated for interactive console
+        async function runCode() {
+            const code = document.getElementById('code-input').value;
+            
+            if (!code.trim()) {
+                addConsoleOutput('Error: No code to run', 'error');
+                return;
+            }
+            
+            // Clear previous input state
+            hideInputContainer();
+            isWaitingForInput = false;
+            pendingInputs = [];
+            
+            addConsoleOutput('Running...', 'info');
+            
+            // Check if code has input() calls - if so, run interactively
+            if (code.includes('input(')) {
+                await runInteractiveCode(code);
+            } else {
+                await runNormalCode(code);
+            }
+        }
+        
+        async function runNormalCode(code) {
+            try {
+                const formData = new FormData();
+                formData.append('code', code);
+                formData.append('language', 'python');
+                
+                const response = await fetch('/code/run', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.result.output) {
+                        addConsoleOutput(result.result.output, 'output');
+                    }
+                    if (result.result.error) {
+                        addConsoleOutput(result.result.error, 'error');
+                    }
+                    if (!result.result.output && !result.result.error) {
+                        addConsoleOutput('(No output)', 'muted');
+                    }
+                } else {
+                    addConsoleOutput(result.result?.error || 'Unknown error', 'error');
+                }
+            } catch (error) {
+                addConsoleOutput(`Connection error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runInteractiveCode(code) {
+            // Start interactive execution - get prompt on first run
+            showInputContainer();
+            isWaitingForInput = true;
+            
+            // Store the code for execution
+            currentExecution = {
+                code: code,
+                inputs: []
+            };
+            
+            // Try to get the first prompt
+            await executeWithCurrentInputs();
+        }
+        
+        async function executeWithCurrentInputs() {
+            if (!currentExecution) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('code', currentExecution.code);
+                formData.append('inputs', JSON.stringify(currentExecution.inputs));
+                
+                const response = await fetch('/code/run-interactive', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show any output
+                    if (result.result.output) {
+                        addConsoleOutput(result.result.output, 'output');
+                    }
+                    if (result.result.error) {
+                        addConsoleOutput(result.result.error, 'error');
+                    }
+                    
+                    // Check if more input is needed
+                    if (result.result.needs_input) {
+                        // Show the prompt message exactly like online-python.com
+                        const promptMsg = result.result.prompt || '';
+                        if (promptMsg) {
+                            addConsolePrompt(promptMsg);
+                        } else {
+                            addConsoleOutput('(waiting for input)', 'muted');
+                        }
+                        // Keep input container visible
+                    } else {
+                        // Execution complete
+                        hideInputContainer();
+                        isWaitingForInput = false;
+                        currentExecution = null;
+                    }
+                } else {
+                    addConsoleOutput(result.result?.error || 'Unknown error', 'error');
+                    hideInputContainer();
+                    isWaitingForInput = false;
+                    currentExecution = null;
+                }
+            } catch (error) {
+                addConsoleOutput(`Connection error: ${error.message}`, 'error');
+                hideInputContainer();
+                isWaitingForInput = false;
+                currentExecution = null;
+            }
+        }
+        
+
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Console functions
+        function addConsoleOutput(text, type = 'output') {
+            const consoleOutput = document.getElementById('console-output');
+            const line = document.createElement('div');
+            line.className = 'console-line';
+            
+            let colorClass = '';
+            switch (type) {
+                case 'error': colorClass = 'text-danger'; break;
+                case 'success': colorClass = 'text-success'; break;
+                case 'info': colorClass = 'text-primary'; break;
+                case 'warning': colorClass = 'text-warning'; break;
+                case 'muted': colorClass = 'text-muted'; break;
+                default: colorClass = ''; break;
+            }
+            
+            const span = document.createElement('span');
+            if (colorClass) span.className = colorClass;
+            span.textContent = text;
+            line.appendChild(span);
+            
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        function addConsolePrompt(prompt) {
+            const consoleOutput = document.getElementById('console-output');
+            const line = document.createElement('div');
+            line.className = 'console-line console-prompt-line';
+            line.style.display = 'inline-block';
+            line.style.width = '100%';
+            
+            // Create prompt span (no newline)
+            const promptSpan = document.createElement('span');
+            promptSpan.textContent = prompt;
+            promptSpan.style.color = '#333';
+            line.appendChild(promptSpan);
+            
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        function clearConsole() {
+            const consoleOutput = document.getElementById('console-output');
+            consoleOutput.innerHTML = `
+                <div class="console-line">
+                    <span class="text-muted">Python 3.8+ Console - Ready</span>
+                </div>
+            `;
+            hideInputContainer();
+            isWaitingForInput = false;
+            currentExecution = null;
+        }
+        
+        function showInputContainer() {
+            document.getElementById('console-input-container').style.display = 'block';
+            document.getElementById('console-input').focus();
+        }
+        
+        function hideInputContainer() {
+            document.getElementById('console-input-container').style.display = 'none';
+        }
+        
+        function handleConsoleInput(event) {
+            if (event.key === 'Enter') {
+                submitConsoleInput();
+            }
+        }
+        
+        async function submitConsoleInput() {
+            const input = document.getElementById('console-input').value;
+            
+            if (!isWaitingForInput || !currentExecution) {
+                return;
+            }
+            
+            // Show input in console - append to prompt line if exists
+            const promptLine = document.querySelector('.console-prompt-line');
+            if (promptLine) {
+                // Append input to the same line as prompt
+                const inputSpan = document.createElement('span');
+                inputSpan.textContent = input;
+                inputSpan.style.color = '#007bff';
+                promptLine.appendChild(inputSpan);
+                
+                // Remove prompt line class so it won't be found again
+                promptLine.classList.remove('console-prompt-line');
+            } else {
+                addConsoleOutput(input, 'info');
+            }
+            
+            // Add to inputs array
+            currentExecution.inputs.push(input);
+            
+            // Clear input field
+            document.getElementById('console-input').value = '';
+            
+            // Execute with current inputs using the shared function
+            await executeWithCurrentInputs();
+        }
+        
+        function copyConsoleOutput() {
+            const consoleOutput = document.getElementById('console-output');
+            const text = consoleOutput.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary success message
+                const originalTitle = document.querySelector('.console-title').textContent;
+                document.querySelector('.console-title').textContent = 'Copied to clipboard!';
+                setTimeout(() => {
+                    document.querySelector('.console-title').textContent = originalTitle;
+                }, 1000);
+            });
+        }
+        
+        // Editor toolbar functions
+        function undoCode() {
+            const editor = document.getElementById('code-input');
+            if (codeHistory.length > 0 && historyIndex < codeHistory.length - 1) {
+                historyIndex++;
+                editor.value = codeHistory[codeHistory.length - 1 - historyIndex];
+            }
+        }
+        
+        function redoCode() {
+            const editor = document.getElementById('code-input');
+            if (historyIndex > 0) {
+                historyIndex--;
+                editor.value = codeHistory[codeHistory.length - 1 - historyIndex];
+            }
+        }
+        
+        function resetCode() {
+            const editor = document.getElementById('code-input');
+            editor.value = '';
+            clearConsole();
+            saveCodeHistory();
+        }
+        
+        function saveCodeHistory() {
+            const code = document.getElementById('code-input').value;
+            if (codeHistory.length === 0 || codeHistory[codeHistory.length - 1] !== code) {
+                codeHistory.push(code);
+                if (codeHistory.length > 50) { // Limit history size
+                    codeHistory.shift();
+                }
+                historyIndex = -1;
+            }
+        }
+        
+        // Auto-save code history on changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('code-input');
+            if (editor) {
+                editor.addEventListener('input', function() {
+                    // Debounce to avoid too many saves
+                    clearTimeout(this.saveTimeout);
+                    this.saveTimeout = setTimeout(saveCodeHistory, 500);
+                });
+            }
+        });
+        
+        // Search functions
+        async function performSearch() {
+            const query = document.getElementById('search-input').value.trim();
+            const category = document.getElementById('search-category').value;
+            const language = document.getElementById('search-language').value;
+            const difficulty = document.getElementById('search-difficulty').value;
+            
+            if (!query) {
+                document.getElementById('search-results').innerHTML = `
+                    <div class="no-assignments">
+                        <i class="fas fa-search"></i>
+                        <h4>Vui lòng nhập từ khóa tìm kiếm</h4>
+                    </div>
+                `;
+                return;
+            }
+            
+            document.getElementById('search-results').innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin"></i> Đang tìm kiếm...
+                </div>
+            `;
+            
+            try {
+                const formData = new FormData();
+                formData.append('query', query);
+                formData.append('category', category);
+                formData.append('filters', JSON.stringify({
+                    language: language,
+                    difficulty: difficulty
+                }));
+                
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displaySearchResults(result.results);
+                } else {
+                    document.getElementById('search-results').innerHTML = `
+                        <div class="no-assignments">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>Lỗi tìm kiếm</h4>
+                            <p>Vui lòng thử lại sau</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                document.getElementById('search-results').innerHTML = `
+                    <div class="no-assignments">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h4>Lỗi kết nối</h4>
+                        <p>Vui lòng thử lại sau</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function displaySearchResults(results) {
+            const container = document.getElementById('search-results');
+            
+            if (results.length === 0) {
+                container.innerHTML = `
+                    <div class="no-assignments">
+                        <i class="fas fa-search"></i>
+                        <h4>Không tìm thấy kết quả</h4>
+                        <p>Hãy thử với từ khóa khác</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = results.map(result => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">${result.title}</h5>
+                        <p class="card-text">${result.description}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-primary">${result.language}</span>
+                                <span class="badge bg-secondary">${result.content_type}</span>
+                            </div>
+                            <small class="text-muted">${formatDate(result.created_at)}</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        // Progress chart
+        function loadProgressChart() {
+            const ctx = document.getElementById('progress-chart').getContext('2d');
+            
+            // Sample data - replace with real data
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hoàn thành', 'Đang làm', 'Chưa làm'],
+                    datasets: [{
+                        data: [12, 3, 5],
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Utility functions
+        function formatDate(dateString) {
+            if (!dateString) return 'Không có';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN');
+        }
+        
+        function refreshAssignments() {
+            loadAssignments();
+        }
+        
+        function showProfile() {
+            alert('Chức năng hồ sơ đang được phát triển');
+        }
+        
+        function showSettings() {
+            alert('Chức năng cài đặt đang được phát triển');
+        }
+        
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_role');
+            window.location.href = '/';
+        }
+        
+        // Search input event listener
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    </script>
+</body>
+</html> 
