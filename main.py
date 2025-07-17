@@ -35,6 +35,9 @@ from modules.assignments import AssignmentManager
 from modules.ai_question_generator import AIQuestionGenerator
 from modules.search_manager import SearchManager
 from modules.interactive_executor import InteractiveExecutor
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = FastAPI(
     title="CS466 Learning System", 
@@ -76,36 +79,139 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+def send_reset_password_email(to_email: str, user_name: str, reset_token: str) -> bool:
+    """Gửi email reset password với link"""
+    try:
+        from config import get_config
+        config = get_config()
+        
+        # Check SMTP config
+        if not config.SMTP_USERNAME or not config.SMTP_PASSWORD:
+            print("SMTP not configured")
+            return False
+        
+        # Create reset link
+        reset_link = f"http://localhost:8000/reset-password?token={reset_token}"
+        
+        # Email content
+        subject = "Reset mật khẩu - CS466"
+        
+        body = f"""
+Xin chào {user_name},
+
+Bạn đã yêu cầu reset mật khẩu cho tài khoản CS466 Learning System.
+
+Vui lòng click vào link dưới đây để đặt lại mật khẩu:
+{reset_link}
+
+Link này sẽ hết hạn sau 10 phút.
+
+Nếu bạn không yêu cầu reset mật khẩu, vui lòng bỏ qua email này.
+
+Trân trọng,
+CS466 Learning System
+        """
+        
+        # Create message
+        message = MIMEMultipart()
+        message['Subject'] = subject
+        message['From'] = config.SMTP_USERNAME
+        message['To'] = to_email
+        
+        message.attach(MIMEText(body, 'plain', 'utf-8'))
+        
+        # Send email
+        server = smtplib.SMTP(config.SMTP_SERVER, config.SMTP_PORT)
+        server.starttls()
+        server.login(config.SMTP_USERNAME, config.SMTP_PASSWORD)
+        server.send_message(message)
+        server.quit()
+        
+        return True
+        
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Trang chủ - Đăng nhập"""
     return templates.TemplateResponse("login.html", {"request": request})
 
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    """Trang đăng ký"""
+    return templates.TemplateResponse("register.html", {"request": request})
+
+@app.post("/register")
+async def register(
+    username: str = Form(...),
+    password: str = Form(...),
+    email: str = Form(...),
+    full_name: str = Form(...),
+    role: str = Form("student")
+):
+    """Xử lý đăng ký"""
+    if role not in ["teacher", "student"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    
+    # Đăng ký user mới
+    success = auth_manager.register_user(username, password, role, full_name, email)
+    if not success:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    return {"success": True, "message": "Registration successful"}
+
+@app.post("/send-otp")
+async def send_otp(email: str = Form(...)):
+    """Gửi OTP đến email (chỉ khi user bật 2FA)"""
+    try:
+        success, message = auth_manager.send_otp_to_email_if_2fa_enabled(email)
+        return {"success": success, "message": message}
+    except Exception as e:
+        # Silent fail - không thông báo lỗi chi tiết
+        return {"success": False, "message": ""}
+
 @app.post("/login")
-async def login(username: str = Form(...), password: str = Form(...)):
-    """Xử lý đăng nhập"""
-    user = auth_manager.authenticate_user(username, password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Create access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth_manager.create_access_token(
-        data={"sub": str(user["id"]), "role": user["role"]},
-        expires_delta=access_token_expires
-    )
-    
-    return {"access_token": access_token, "token_type": "bearer", "role": user["role"]}
+async def login(email: str = Form(...), password: str = Form(...), otp: str = Form(default="")):
+    """Xử lý đăng nhập với 2FA conditional"""
+    try:
+        # Xác thực email + password + OTP (nếu 2FA bật)
+        success, message, user_data = auth_manager.verify_login_with_conditional_otp(email, password, otp)
+        
+        if not success:
+            raise HTTPException(status_code=401, detail=message)
+        
+        # Tạo access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = auth_manager.create_access_token(
+            data={"sub": str(user_data["id"]), "role": user_data["role"]},
+            expires_delta=access_token_expires
+        )
+        
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer", 
+            "role": user_data["role"],
+            "message": message
+        }
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Lỗi hệ thống")
 
 @app.get("/dashboard/{role}", response_class=HTMLResponse)
 async def dashboard(request: Request, role: str):
-    """Dashboard cho GV hoặc SV"""
-    if role not in ["teacher", "student"]:
+    """Dashboard cho GV, SV hoặc Admin"""
+    if role not in ["teacher", "student", "admin"]:
         raise HTTPException(status_code=404, detail="Not found")
     
     # Check if user has valid token in JavaScript
     if role == "teacher":
         return templates.TemplateResponse("teacher_dashboard.html", {"request": request})
+    elif role == "admin":
+        return templates.TemplateResponse("admin_dashboard.html", {"request": request})
     else:
         return templates.TemplateResponse("student_dashboard.html", {"request": request})
 
@@ -565,6 +671,270 @@ async def get_teacher_assignments(user: dict = Depends(get_current_user)):
     assignments = assignment_manager.get_assignments_by_teacher(int(user["user_id"]))
     return assignments
 
+# ================================
+# ADMIN API ENDPOINTS
+# ================================
+
+@app.get("/api/admin/users")
+async def get_all_users(user: dict = Depends(get_current_user)):
+    """API lấy danh sách tất cả người dùng (chỉ admin)"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, username, email, full_name, role, created_at
+            FROM users ORDER BY created_at DESC
+        ''')
+        
+        users = []
+        for row in cursor.fetchall():
+            users.append({
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "full_name": row[3],
+                "role": row[4],
+                "created_at": row[5],
+                "status": "active"  # Default active status
+            })
+        
+        conn.close()
+        return {"success": True, "users": users}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
+@app.get("/api/admin/stats")
+async def get_admin_stats(user: dict = Depends(get_current_user)):
+    """API lấy thống kê cho admin dashboard"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        # Count users by role
+        cursor.execute("SELECT role, COUNT(*) FROM users GROUP BY role")
+        role_counts = dict(cursor.fetchall())
+        
+        # Total users
+        cursor.execute("SELECT COUNT(*) FROM users")
+        total_users = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        return {
+            "success": True,
+            "stats": {
+                "students": role_counts.get("student", 0),
+                "teachers": role_counts.get("teacher", 0),
+                "admins": role_counts.get("admin", 0),
+                "total": total_users
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
+@app.post("/api/admin/users")
+async def create_user(
+    username: str = Form(...),
+    email: str = Form(...),
+    full_name: str = Form(...),
+    role: str = Form(...),
+    password: str = Form(...),
+    is_active: bool = Form(True),
+    user: dict = Depends(get_current_user)
+):
+    """API tạo người dùng mới (chỉ admin)"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Validate role
+        if role not in ["admin", "teacher", "student"]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        
+        # Validate password
+        if len(password) < 6:
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 6 ký tự")
+        
+        if not any(c.isupper() for c in password):
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 1 chữ in hoa")
+        
+        if not any(c.isdigit() for c in password):
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 1 chữ số")
+        
+        if not any(c.isalpha() for c in password):
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 1 chữ cái")
+        
+        # Create user
+        success = auth_manager.register_user(username, password, role, full_name, email)
+        
+        if not success:
+            raise HTTPException(status_code=400, detail="Username hoặc email đã tồn tại")
+        
+        return {"success": True, "message": "Tạo người dùng thành công"}
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
+@app.put("/api/admin/users/{user_id}")
+async def update_user(
+    user_id: int,
+    username: str = Form(...),
+    email: str = Form(...),
+    full_name: str = Form(...),
+    role: str = Form(...),
+    is_active: bool = Form(True),
+    user: dict = Depends(get_current_user)
+):
+    """API cập nhật thông tin người dùng (chỉ admin)"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Validate role
+        if role not in ["admin", "teacher", "student"]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+        if not cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update user
+        cursor.execute('''
+            UPDATE users 
+            SET username = ?, email = ?, full_name = ?, role = ?
+            WHERE id = ?
+        ''', (username, email, full_name, role, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Cập nhật người dùng thành công"}
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
+@app.delete("/api/admin/users/{user_id}")
+async def delete_user(user_id: int, user: dict = Depends(get_current_user)):
+    """API xóa người dùng (chỉ admin)"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Prevent self-deletion
+        if int(user["user_id"]) == user_id:
+            raise HTTPException(status_code=400, detail="Không thể xóa chính mình")
+        
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+        if not cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Delete user (should also handle cascading deletes in production)
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Xóa người dùng thành công"}
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
+@app.post("/api/admin/users/{user_id}/reset-password")
+async def reset_user_password(user_id: int, user: dict = Depends(get_current_user)):
+    """API reset mật khẩu người dùng (chỉ admin) - Gửi email với link reset"""
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        # Check if user exists and get email
+        cursor.execute("SELECT email, full_name FROM users WHERE id = ?", (user_id,))
+        result = cursor.fetchone()
+        if not result:
+            conn.close()
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_email, user_name = result
+        
+        # Generate reset token
+        import secrets
+        import uuid
+        reset_token = str(uuid.uuid4()) + secrets.token_urlsafe(32)
+        
+        # Create password_reset_tokens table if not exists
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token TEXT UNIQUE NOT NULL,
+                user_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        
+        # Insert reset token (expires in 10 minutes)
+        from datetime import datetime, timedelta
+        expires_at = (datetime.now() + timedelta(minutes=10)).isoformat()
+        
+        cursor.execute('''
+            INSERT INTO password_reset_tokens (token, user_id, expires_at)
+            VALUES (?, ?, ?)
+        ''', (reset_token, user_id, expires_at))
+        
+        conn.commit()
+        conn.close()
+        
+        # Send reset email
+        success = send_reset_password_email(user_email, user_name, reset_token)
+        
+        if success:
+            return {
+                "success": True,
+                "message": "Email reset mật khẩu đã được gửi"
+            }
+        else:
+            # If email fails, remove token from database
+            conn = sqlite3.connect("cs466_database.db")
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM password_reset_tokens WHERE token = ?", (reset_token,))
+            conn.commit()
+            conn.close()
+            
+            raise HTTPException(status_code=500, detail="Không thể gửi email")
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -576,6 +946,330 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ================================
+# PROFILE ENDPOINTS
+# ================================
+
+@app.get("/profile", response_class=HTMLResponse)
+async def profile_page(request: Request):
+    """Trang hồ sơ cá nhân"""
+    # Check authentication in JavaScript, not server-side
+    return templates.TemplateResponse("profile.html", {"request": request})
+
+@app.get("/logout")
+async def logout():
+    """Đăng xuất - Clear client-side token và redirect về trang login"""
+    response = RedirectResponse(url="/", status_code=302)
+    # Có thể thêm logic clear server-side session nếu cần
+    return response
+
+@app.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page(request: Request, token: str):
+    """Trang reset mật khẩu"""
+    # Validate token
+    conn = sqlite3.connect("cs466_database.db")
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT rt.user_id, rt.expires_at, u.email, u.full_name
+        FROM password_reset_tokens rt
+        JOIN users u ON rt.user_id = u.id
+        WHERE rt.token = ?
+    ''', (token,))
+    
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result:
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request, 
+            "error": "Token không hợp lệ"
+        })
+    
+    user_id, expires_at, email, full_name = result
+    
+    # Check if token expired
+    from datetime import datetime
+    expires_time = datetime.fromisoformat(expires_at)
+    
+    if datetime.now() > expires_time:
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request, 
+            "error": "Token đã hết hạn"
+        })
+    
+    return templates.TemplateResponse("reset_password.html", {
+        "request": request,
+        "token": token,
+        "email": email,
+        "full_name": full_name
+    })
+
+@app.post("/reset-password")
+async def reset_password_submit(
+    token: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...)
+):
+    """Xử lý reset mật khẩu"""
+    try:
+        # Validate passwords match
+        if new_password != confirm_password:
+            raise HTTPException(status_code=400, detail="Mật khẩu xác nhận không khớp")
+        
+        # Validate password requirements
+        if len(new_password) < 6:
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 6 ký tự")
+        
+        if not any(c.isupper() for c in new_password):
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 1 chữ in hoa")
+        
+        if not any(c.isdigit() for c in new_password):
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 1 chữ số")
+        
+        if not any(c.isalpha() for c in new_password):
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có ít nhất 1 chữ cái")
+        
+        # Check for special characters (not allowed)
+        special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        if any(c in special_chars for c in new_password):
+            raise HTTPException(status_code=400, detail="Mật khẩu không được chứa ký tự đặc biệt")
+        
+        # Validate token
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT user_id, expires_at
+            FROM password_reset_tokens
+            WHERE token = ?
+        ''', (token,))
+        
+        result = cursor.fetchone()
+        
+        if not result:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Token không hợp lệ")
+        
+        user_id, expires_at = result
+        
+        # Check if token expired
+        from datetime import datetime
+        expires_time = datetime.fromisoformat(expires_at)
+        
+        if datetime.now() > expires_time:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Token đã hết hạn")
+        
+        # Update password
+        new_password_hash = auth_manager.get_password_hash(new_password)
+        cursor.execute('''
+            UPDATE users 
+            SET password_hash = ?
+            WHERE id = ?
+        ''', (new_password_hash, user_id))
+        
+        # Delete token (used)
+        cursor.execute("DELETE FROM password_reset_tokens WHERE token = ?", (token,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Đổi mật khẩu thành công"}
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Lỗi hệ thống")
+
+@app.get("/api/profile")
+async def get_profile(user: dict = Depends(get_current_user)):
+    """API lấy thông tin hồ sơ cá nhân"""
+    try:
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, username, email, full_name, role, created_at
+            FROM users WHERE id = ?
+        ''', (user["user_id"],))
+        
+        user_data = cursor.fetchone()
+        conn.close()
+        
+        if user_data:
+            return {
+                "success": True,
+                "profile": {
+                    "id": user_data[0],
+                    "username": user_data[1],
+                    "email": user_data[2],
+                    "full_name": user_data[3],
+                    "role": user_data[4],
+                    "created_at": user_data[5],
+                    "birth_date": None,  # Sẽ implement sau
+                    "gender": None,      # Sẽ implement sau
+                    "is_2fa_enabled": auth_manager.is_2fa_enabled(int(user["user_id"]))
+                }
+            }
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
+@app.post("/api/profile/update")
+async def update_profile(
+    full_name: str = Form(...),
+    birth_date: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),
+    user: dict = Depends(get_current_user)
+):
+    """API cập nhật thông tin hồ sơ cá nhân"""
+    try:
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        
+        # Cập nhật thông tin cơ bản
+        cursor.execute('''
+            UPDATE users 
+            SET full_name = ?
+            WHERE id = ?
+        ''', (full_name, user["user_id"]))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "success": True,
+            "message": "Cập nhật hồ sơ thành công!",
+            "updated_fields": {
+                "full_name": full_name,
+                "birth_date": birth_date,
+                "gender": gender
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database error")
+
+@app.post("/api/profile/toggle-2fa")
+async def toggle_2fa(user: dict = Depends(get_current_user)):
+    """API toggle trạng thái 2FA"""
+    try:
+        user_id = int(user["user_id"])
+        
+        # Lấy trạng thái hiện tại
+        current_status = auth_manager.is_2fa_enabled(user_id)
+        
+        # Đảo ngược trạng thái
+        new_status = not current_status
+        auth_manager.set_2fa_status(user_id, new_status)
+        
+        return {
+            "success": True,
+            "is_2fa_enabled": new_status,
+            "message": f"2FA đã được {'bật' if new_status else 'tắt'}"
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": "Lỗi hệ thống"}
+
+@app.post("/api/profile/send-otp-password")
+async def send_otp_for_password_change(user: dict = Depends(get_current_user)):
+    """Gửi OTP để đổi mật khẩu (luôn bắt buộc 2FA)"""
+    try:
+        # Lấy email của user
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        cursor.execute('SELECT email FROM users WHERE id = ?', (user["user_id"],))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_email = result[0]
+        
+        # Gửi OTP qua email (luôn gửi cho đổi mật khẩu, bất kể 2FA setting)
+        success, message = auth_manager.send_otp_to_email(user_email)
+        
+        return {
+            "success": success,
+            "message": message if success else "Có lỗi xảy ra khi gửi OTP"
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": "Lỗi hệ thống"}
+
+@app.post("/api/profile/change-password") 
+async def change_password(
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    otp: str = Form(...),
+    user: dict = Depends(get_current_user)
+):
+    """API đổi mật khẩu với OTP verification"""
+    try:
+        # Validate mật khẩu mới
+        if len(new_password) < 6:
+            return {"success": False, "message": "Mật khẩu mới phải có ít nhất 6 ký tự"}
+        
+        if not any(c.isupper() for c in new_password):
+            return {"success": False, "message": "Mật khẩu mới phải có ít nhất 1 chữ in hoa"}
+        
+        if not any(c.isdigit() for c in new_password):
+            return {"success": False, "message": "Mật khẩu mới phải có ít nhất 1 chữ số"}
+        
+        if not any(c.isalpha() for c in new_password):
+            return {"success": False, "message": "Mật khẩu mới phải có ít nhất 1 chữ cái"}
+        
+        # Kiểm tra ký tự đặc biệt (không được có)
+        special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        if any(c in special_chars for c in new_password):
+            return {"success": False, "message": "Mật khẩu mới không được chứa ký tự đặc biệt"}
+        
+        # Lấy thông tin user hiện tại
+        conn = sqlite3.connect("cs466_database.db")
+        cursor = conn.cursor()
+        cursor.execute('SELECT email, password_hash FROM users WHERE id = ?', (user["user_id"],))
+        result = cursor.fetchone()
+        
+        if not result:
+            conn.close()
+            return {"success": False, "message": "Không tìm thấy người dùng"}
+        
+        user_email, current_password_hash = result
+        
+        # Xác thực mật khẩu hiện tại
+        if not auth_manager.verify_password(current_password, current_password_hash):
+            conn.close()
+            return {"success": False, "message": "Mật khẩu hiện tại không đúng"}
+        
+        # Xác thực OTP
+        if not auth_manager.verify_otp(user_email, otp):
+            conn.close()
+            return {"success": False, "message": "Mã OTP không đúng hoặc đã hết hạn"}
+        
+        # Cập nhật mật khẩu mới
+        new_password_hash = auth_manager.get_password_hash(new_password)
+        cursor.execute('''
+            UPDATE users 
+            SET password_hash = ?
+            WHERE id = ?
+        ''', (new_password_hash, user["user_id"]))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "success": True,
+            "message": "Đổi mật khẩu thành công!"
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": "Lỗi hệ thống"}
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="localhost", port=8000) 

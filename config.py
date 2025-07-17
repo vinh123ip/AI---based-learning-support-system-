@@ -19,7 +19,7 @@ class Config:
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', '30'))
     
     # Application Settings
-    APP_HOST = os.getenv('APP_HOST', '0.0.0.0')
+    APP_HOST = os.getenv('APP_HOST', 'localhost')
     APP_PORT = int(os.getenv('APP_PORT', '8000'))
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     
@@ -44,6 +44,9 @@ class Config:
     SESSION_TIMEOUT = int(os.getenv('SESSION_TIMEOUT', '3600'))  # seconds
     MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', '5'))
     LOCKOUT_DURATION = int(os.getenv('LOCKOUT_DURATION', '900'))  # seconds
+    
+    # 2FA/OTP Settings (simplified)
+    ENABLE_2FA = os.getenv('ENABLE_2FA', 'True').lower() == 'true'
     
     # AI Settings
     AI_MODEL = os.getenv('AI_MODEL', 'gpt-3.5-turbo')

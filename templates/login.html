@@ -142,10 +142,10 @@
             
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="username" class="form-label">Tên đăng nhập</label>
+                    <label for="email" class="form-label">Email hoặc Username</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-user"></i></span>
-                        <input type="text" class="form-control with-icon" id="username" name="username" required>
+                        <input type="text" class="form-control with-icon" id="email" name="email" required placeholder="Nhập email hoặc username">
                     </div>
                 </div>
                 
@@ -161,37 +161,49 @@
                 </div>
                 
                 <div class="form-group">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="rememberMe" name="rememberMe">
-                        <label class="form-check-label" for="rememberMe">
-                            Ghi nhớ đăng nhập
-                        </label>
+                    <label for="otp" class="form-label">Mã OTP (tùy chọn)</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                        <input type="text" class="form-control with-icon" id="otp" name="otp" placeholder="Nhập mã 6 số (nếu bật 2FA)" maxlength="6" pattern="[0-9]{6}">
+                        <button type="button" class="btn btn-outline-danger" id="sendOtpBtn">
+                            Gửi OTP
+                        </button>
                     </div>
+                    <small class="form-text text-muted">Chỉ cần nhập OTP nếu bạn đã bật xác thực 2 bước trong hồ sơ cá nhân</small>
                 </div>
                 
-                <button type="submit" class="btn btn-login btn-primary w-100">
-                    <span class="login-text">Đăng nhập</span>
-                    <span class="loading">
-                        <i class="fas fa-spinner fa-spin"></i> Đang đăng nhập...
-                    </span>
-                </button>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <button type="submit" class="btn btn-login btn-primary w-100">
+                            <span class="login-text">Đăng nhập</span>
+                            <span class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> Đang đăng nhập...
+                            </span>
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <a href="/register" class="btn btn-outline-success w-100">
+                            <i class="fas fa-user-plus"></i> Đăng ký
+                        </a>
+                    </div>
+                </div>
             </form>
             
             <div class="demo-accounts">
                 <h6><i class="fas fa-info-circle"></i> Tài khoản demo:</h6>
                 <div class="demo-account">
                     <div>
-                        <strong>Giáo viên:</strong> teacher / teacher123
+                        <strong>Giáo viên:</strong> teacher@dtu.edu.vn / teacher123
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="fillDemoAccount('teacher', 'teacher123')">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="fillDemoAccount('teacher@dtu.edu.vn', 'teacher123')">
                         Điền
                     </button>
                 </div>
                 <div class="demo-account">
                     <div>
-                        <strong>Sinh viên:</strong> student / student123
+                        <strong>Sinh viên:</strong> student@dtu.edu.vn / student123
                     </div>
-                    <button type="button" class="btn btn-outline-success btn-sm" onclick="fillDemoAccount('student', 'student123')">
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="fillDemoAccount('student@dtu.edu.vn', 'student123')">
                         Điền
                     </button>
                 </div>
@@ -206,8 +218,10 @@
         
         // DOM elements
         const loginForm = document.getElementById('loginForm');
-        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
+        const otpInput = document.getElementById('otp');
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
         const togglePasswordBtn = document.getElementById('togglePassword');
         const alertContainer = document.getElementById('alert-container');
         const loginText = document.querySelector('.login-text');
@@ -215,31 +229,97 @@
         
         // Event listeners
         loginForm.addEventListener('submit', handleLogin);
+        sendOtpBtn.addEventListener('click', sendOTP);
         togglePasswordBtn.addEventListener('click', togglePassword);
-        usernameInput.addEventListener('input', clearErrors);
+        emailInput.addEventListener('input', clearErrors);
         passwordInput.addEventListener('input', clearErrors);
+        otpInput.addEventListener('input', clearErrors);
         
         // Load saved credentials
         window.addEventListener('load', loadSavedCredentials);
         
+        // Send OTP function
+        async function sendOTP() {
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                showAlert('Vui lòng nhập email trước khi gửi OTP!', 'danger');
+                return;
+            }
+            
+            if (!isValidEmail(email)) {
+                showAlert('Vui lòng nhập email hợp lệ!', 'danger');
+                return;
+            }
+            
+            const originalText = sendOtpBtn.textContent;
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.textContent = 'Đang gửi...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('email', email);
+                
+                const response = await fetch('/send-otp', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message || 'OTP đã được gửi đến email của bạn!', 'success');
+                    sendOtpBtn.textContent = 'Đã gửi';
+                    sendOtpBtn.classList.remove('btn-outline-danger');
+                    sendOtpBtn.classList.add('btn-outline-success');
+                    
+                    // Focus vào ô OTP
+                    otpInput.focus();
+                    
+                    // Countdown 60 giây
+                    let countdown = 60;
+                    const interval = setInterval(() => {
+                        countdown--;
+                        sendOtpBtn.textContent = `Gửi lại (${countdown}s)`;
+                        
+                        if (countdown <= 0) {
+                            clearInterval(interval);
+                            sendOtpBtn.disabled = false;
+                            sendOtpBtn.textContent = 'Gửi lại OTP';
+                            sendOtpBtn.classList.remove('btn-outline-success');
+                            sendOtpBtn.classList.add('btn-outline-danger');
+                        }
+                    }, 1000);
+                } else {
+                    // Silent fail - không hiện lỗi nếu email không tồn tại
+                    sendOtpBtn.disabled = false;
+                    sendOtpBtn.textContent = originalText;
+                }
+            } catch (error) {
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.textContent = originalText;
+                showAlert('Lỗi kết nối! Vui lòng thử lại.', 'danger');
+            }
+        }
+
         // Handle form submission
         async function handleLogin(e) {
             e.preventDefault();
             
             if (isLoading) return;
             
-            const username = usernameInput.value.trim();
+            const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
-            const rememberMe = document.getElementById('rememberMe').checked;
+            const otp = otpInput.value.trim();
             
-            // Validation
-            if (!username || !password) {
-                showAlert('Vui lòng điền đầy đủ thông tin đăng nhập!', 'danger');
+            // Basic validation
+            if (!email || !password) {
+                showAlert('Vui lòng điền đầy đủ Email và Mật khẩu!', 'danger');
                 return;
             }
             
-            if (username.length < 3) {
-                showAlert('Tên đăng nhập phải có ít nhất 3 ký tự!', 'danger');
+            if (!isValidEmail(email)) {
+                showAlert('Vui lòng nhập email hợp lệ!', 'danger');
                 return;
             }
             
@@ -248,13 +328,20 @@
                 return;
             }
             
+            // OTP validation - only if provided
+            if (otp && (otp.length !== 6 || !/^\d+$/.test(otp))) {
+                showAlert('Mã OTP phải có đúng 6 số!', 'danger');
+                return;
+            }
+            
             // Start loading
             setLoading(true);
             
             try {
                 const formData = new FormData();
-                formData.append('username', username);
+                formData.append('email', email);
                 formData.append('password', password);
+                formData.append('otp', otp); // Send empty string if no OTP
                 
                 const response = await fetch('/login', {
                     method: 'POST',
@@ -264,15 +351,6 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    // Save credentials if remember me is checked
-                    if (rememberMe) {
-                        localStorage.setItem('savedUsername', username);
-                        localStorage.setItem('rememberMe', 'true');
-                    } else {
-                        localStorage.removeItem('savedUsername');
-                        localStorage.removeItem('rememberMe');
-                    }
-                    
                     // Save token
                     localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('user_role', data.role);
@@ -285,7 +363,7 @@
                     }, 1500);
                     
                 } else {
-                    showAlert(data.detail || 'Đăng nhập thất bại!', 'danger');
+                    showAlert(data.detail || 'Thông tin đăng nhập không hợp lệ!', 'danger');
                 }
                 
             } catch (error) {
@@ -294,6 +372,11 @@
             } finally {
                 setLoading(false);
             }
+        }
+        
+        // Email validation
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
         
         // Toggle password visibility
@@ -306,17 +389,17 @@
         }
         
         // Fill demo account
-        function fillDemoAccount(username, password) {
-            usernameInput.value = username;
+        function fillDemoAccount(email, password) {
+            emailInput.value = email;
             passwordInput.value = password;
             clearErrors();
             
             // Add visual feedback
-            usernameInput.classList.add('is-valid');
+            emailInput.classList.add('is-valid');
             passwordInput.classList.add('is-valid');
             
             setTimeout(() => {
-                usernameInput.classList.remove('is-valid');
+                emailInput.classList.remove('is-valid');
                 passwordInput.classList.remove('is-valid');
             }, 2000);
         }
@@ -347,8 +430,9 @@
         
         // Clear validation errors
         function clearErrors() {
-            usernameInput.classList.remove('is-invalid');
+            emailInput.classList.remove('is-invalid');
             passwordInput.classList.remove('is-invalid');
+            otpInput.classList.remove('is-invalid');
         }
         
         // Set loading state
@@ -369,13 +453,7 @@
         
         // Load saved credentials
         function loadSavedCredentials() {
-            const savedUsername = localStorage.getItem('savedUsername');
-            const rememberMe = localStorage.getItem('rememberMe');
-            
-            if (savedUsername && rememberMe === 'true') {
-                usernameInput.value = savedUsername;
-                document.getElementById('rememberMe').checked = true;
-            }
+            // No longer saving credentials for security
             
             // Check if user is already logged in
             const token = localStorage.getItem('access_token');
@@ -409,9 +487,9 @@
                 handleLogin(e);
             }
         });
-        
+
         // Add input animations
-        [usernameInput, passwordInput].forEach(input => {
+        [emailInput, passwordInput, otpInput].forEach(input => {
             input.addEventListener('focus', function() {
                 this.parentElement.classList.add('focused');
             });

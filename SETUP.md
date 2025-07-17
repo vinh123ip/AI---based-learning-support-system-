@@ -30,9 +30,12 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ### 4️⃣ Access System
 ```
 🌐 URL: http://localhost:8000
-👨‍🏫 Teacher: teacher/teacher123
-🎓 Student: student/student123
+👑 Admin: admin@dtu.edu.vn / Admin123
+👨‍🏫 Teacher: teacher@dtu.edu.vn / Teacher123
+🎓 Student: student@dtu.edu.vn / Student123
 ```
+
+**⚠️ Lưu ý quan trọng:** Hệ thống đã chuyển sang login bằng EMAIL thay vì username!
 
 ## 🔧 Quick Test
 ```bash

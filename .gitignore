@@ -108,3 +108,6 @@ __pypackages__/
 # - cs466_database.db (demo data)
 # - learning_system.db (if exists)
 # - final_system_check.py (testing tool) 
+
+
+test*.py

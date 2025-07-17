@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - CS466 Learning System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 2rem 0;
+        }
+        
+        .register-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .register-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .register-header h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .register-header p {
+            color: #666;
+            margin-bottom: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 0.75rem;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: #667eea;
+        }
+        
+        .btn-register {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            color: white;
+        }
+        
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+        
+        .input-group-text {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px 0 0 8px;
+        }
+        
+        .form-control.with-icon {
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .alert {
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .back-to-login {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .back-to-login a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .back-to-login a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 576px) {
+            .register-container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="register-container">
+            <div class="register-header">
+                <h1><i class="fas fa-user-plus text-success"></i> Đăng ký</h1>
+                <p>Tạo tài khoản mới cho CS466 Learning System</p>
+            </div>
+            
+            <div id="alert-container"></div>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="username" class="form-label">Tên đăng nhập *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text" class="form-control with-icon" id="username" name="username" required>
+                    </div>
+                    <small class="form-text text-muted">Tối thiểu 3 ký tự</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="full_name" class="form-label">Họ và tên *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                        <input type="text" class="form-control with-icon" id="full_name" name="full_name" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">Email *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                        <input type="email" class="form-control with-icon" id="email" name="email" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Mật khẩu *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control with-icon" id="password" name="password" required>
+                        <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Tối thiểu 6 ký tự</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">Nhập lại mật khẩu *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control with-icon" id="confirm_password" name="confirm_password" required>
+                        <button type="button" class="btn btn-outline-secondary" id="toggleConfirmPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role" class="form-label">Vai trò *</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
+                        <select class="form-control with-icon" id="role" name="role" required>
+                            <option value="">Chọn vai trò</option>
+                            <option value="student">Sinh viên</option>
+                            <option value="teacher">Giáo viên</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-register w-100">
+                    <span class="register-text">Đăng ký</span>
+                    <span class="loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i> Đang đăng ký...
+                    </span>
+                </button>
+            </form>
+            
+            <div class="back-to-login">
+                <p>Đã có tài khoản? <a href="/">Đăng nhập ngay</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let isLoading = false;
+        
+        // DOM elements
+        const registerForm = document.getElementById('registerForm');
+        const alertContainer = document.getElementById('alert-container');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        const toggleConfirmPasswordBtn = document.getElementById('toggleConfirmPassword');
+        
+        // Event listeners
+        registerForm.addEventListener('submit', handleRegister);
+        togglePasswordBtn.addEventListener('click', () => togglePassword('password'));
+        toggleConfirmPasswordBtn.addEventListener('click', () => togglePassword('confirm_password'));
+        
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const passwordInput = document.getElementById(fieldId);
+            const button = fieldId === 'password' ? togglePasswordBtn : toggleConfirmPasswordBtn;
+            const icon = button.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        
+        // Handle form submission
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            if (isLoading) return;
+            
+            const formData = new FormData();
+            const username = document.getElementById('username').value.trim();
+            const fullName = document.getElementById('full_name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const role = document.getElementById('role').value;
+            
+            // Validation
+            if (!username || !fullName || !email || !password || !confirmPassword || !role) {
+                showAlert('Vui lòng điền đầy đủ tất cả thông tin!', 'danger');
+                return;
+            }
+            
+            if (username.length < 3) {
+                showAlert('Tên đăng nhập phải có ít nhất 3 ký tự!', 'danger');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showAlert('Mật khẩu phải có ít nhất 6 ký tự!', 'danger');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showAlert('Mật khẩu xác nhận không khớp!', 'danger');
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showAlert('Email không hợp lệ!', 'danger');
+                return;
+            }
+            
+            // Start loading
+            setLoading(true);
+            
+            try {
+                formData.append('username', username);
+                formData.append('full_name', fullName);
+                formData.append('email', email);
+                formData.append('password', password);
+                formData.append('role', role);
+                
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Đăng ký thành công! Đang chuyển đến trang đăng nhập...', 'success');
+                    // Clear form
+                    registerForm.reset();
+                    // Redirect to login page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    if (data.detail === 'Username already exists') {
+                        showAlert('Tên đăng nhập đã tồn tại! Vui lòng chọn tên khác.', 'danger');
+                    } else {
+                        showAlert(data.detail || 'Đăng ký thất bại!', 'danger');
+                    }
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                showAlert('Lỗi kết nối! Vui lòng thử lại.', 'danger');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // Show alert message
+        function showAlert(message, type) {
+            const alertHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            alertContainer.innerHTML = alertHTML;
+        }
+        
+        // Set loading state
+        function setLoading(loading) {
+            isLoading = loading;
+            const registerText = document.querySelector('.register-text');
+            const loadingSpinner = document.querySelector('.loading');
+            const submitBtn = registerForm.querySelector('button[type="submit"]');
+            
+            if (loading) {
+                registerText.style.display = 'none';
+                loadingSpinner.style.display = 'inline';
+                submitBtn.disabled = true;
+            } else {
+                registerText.style.display = 'inline';
+                loadingSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html> 
